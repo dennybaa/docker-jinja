@@ -28,8 +28,6 @@ class Core(object):
         Log.debug("Cli args: {}".format(self.args))
 
         self.default_config_files = [
-            "/etc/dj.yaml",
-            "/etc/dj.json",
             os.path.expanduser("~/.dj.yaml"),
             os.path.expanduser("~/.dj.json"),
             os.path.join(os.getcwd(), ".dj.yaml"),
@@ -38,10 +36,11 @@ class Core(object):
 
         Log.debug("DEFAULT_CONFIG_FILES: {}".format(self.default_config_files))
 
-        # Load all config files into unified config tree
+        # Load all config files into unified config tree,
+        # don't fail since default config files may not exist.
         Log.debug("Building config...")
         self.config = ConfTree(self.default_config_files)
-        self.config.load_config_files()
+        self.config.load_config_files(onload_fail=False)
         Log.debug("Config building is done")
 
     def parse_env_vars(self):
