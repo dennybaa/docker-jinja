@@ -9,35 +9,23 @@ import pytest
 
 class TestConfTree(object):
 
-    def test_create_obj(self):
+    @staticmethod
+    def test_create_obj():
         """
         Test that creating a ConfTree object works and sets default values for internal variables.
         """
         c = ConfTree()
-        assert c.config_files == []
         assert c.tree == {}
 
-        # Only lists are allowed to be passed in
-        with pytest.raises(Exception) as ex:
-            c = ConfTree(config_files={"foo": "bar"})
-        assert str(ex.value).startswith("config files must be a list of items that can be read from FS")
-
-    def test_store_config_files(self):
-        """
-        Initial specefied config files should be stored internally in ConfTree object
-        """
-        dummy_files = ["/foo/bar"]
-        c = ConfTree(config_files=dummy_files)
-        assert c.config_files, dummy_files
-
-    def test_load_file_not_exists(self):
+    @staticmethod
+    def test_load_file_not_exists():
         """
         Test to load a file that do not exists on the system
         """
-        dummy_files = ["/tmp/foobar/opalopa"]
-        c = ConfTree(config_files=dummy_files)
+        c = ConfTree()
+        dummy_file = "/tmp/foobar/opalopa"
         with pytest.raises(Exception):
-            c.load_config_file()
+            c.load_config_file(dummy_file)
 
     def test_load_empty_file(self, tmpdir):
         """
