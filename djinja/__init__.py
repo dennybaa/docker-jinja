@@ -15,13 +15,6 @@ __author__ = 'Grokzen <Grokzen@gmail.com>'
 # Set to True to have revision from Version Control System in version string
 __devel__ = True
 
-# Global register dict of all registered methods and filters
-# NOTE: This must be here so that it will be properly visible for all code and to make it work properly
-_local_env = {
-    "globals": {},
-    "filters": {},
-}
-
 log_level_to_string_map = {
     5: "DEBUG",
     4: "INFO",
@@ -31,31 +24,36 @@ log_level_to_string_map = {
     0: "INFO"
 }
 
+
 def init_logging(log_level):
     """
     Init logging settings with default set to INFO
     """
-    l = log_level_to_string_map[log_level]
+    level = log_level_to_string_map[log_level]
+    message = "%(levelname)s:"
 
-    msg = "%(levelname)s - %(name)s:%(lineno)s - %(message)s" if l in os.environ else "%(levelname)s - %(message)s"
+    if level == 'DEBUG':
+        message = ' '.join((message, "at %(name)s:%(lineno)s\t"))
+
+    message = ' '.join((message, "%(message)s"))
 
     logging_conf = {
         "version": 1,
         "root": {
-            "level": l,
+            "level": level,
             "handlers": ["console"]
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "level": l,
+                "level": level,
                 "formatter": "simple",
                 "stream": "ext://sys.stdout"
             }
         },
         "formatters": {
             "simple": {
-                "format": " {}".format(msg)
+                "format": "{}".format(message)
             }
         }
     }

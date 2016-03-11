@@ -7,9 +7,8 @@ import logging
 
 from jinja2 import Template
 
-from djinja import _local_env, contrib, FileProcessingError
+from djinja import contrib, FileProcessingError
 from djinja.conftree import ConfTree
-
 
 Log = logging.getLogger(__name__)
 
@@ -21,8 +20,12 @@ class Core(object):
         :param cli_args: Arguments structure from docopt.
         """
         self.args = cli_args
-
-        Log.debug("Cli args: {}".format(self.args))
+        # Context hash to store context for template environment
+        self.environment_vars = {
+            "globals": {},
+            "filters": {},
+        }
+        Log.debug("Cli args: %s", self.args)
 
         self.default_config_files = [
             os.path.expanduser("~/.dj.yaml"),
@@ -31,7 +34,7 @@ class Core(object):
             os.path.join(os.getcwd(), ".dj.json"),
         ]
 
-        Log.debug("DEFAULT_CONFIG_FILES: {}".format(self.default_config_files))
+        Log.debug("DEFAULT_CONFIG_FILES: %s", self.default_config_files)
 
         # Load all config files into unified config tree, don't fail on load since
         # default config files might not exist.
@@ -44,13 +47,13 @@ class Core(object):
         """
         Parse all variables inputed from cli and add them to global config
         """
-        vars = {}
+        _vars = {}
         for var in self.args.get("--env", []):
             s = var.split("=")
             if len(s) != 2 or (len(s[0]) == 0 or len(s[1]) == 0):
                 raise Exception("var '{0}' is not of format 'key=value'".format(var))
-            vars[s[0]] = s[1]
-        self.config.merge_data_tree(vars)
+            _vars[s[0]] = s[1]
+        self.config.merge_data_tree(_vars)
 
     def load_user_specefied_config_file(self):
         """
@@ -79,7 +82,7 @@ class Core(object):
                 # Append to sys path so we can import the python file
                 sys.path.insert(0, p)
                 datasource_path = os.path.splitext(os.path.basename(datasource_file))[0]
-                Log.debug("{0}".format(datasource_path))
+                Log.debug("%s", datasource_path)
 
                 # Import python file but do nothing with it because all datasources should
                 #  handle and register themself to jinja.
@@ -89,10 +92,10 @@ class Core(object):
                 for method in dir(i):
                     if method.lower().startswith("_filter_"):
                         method_name = method.replace("_filter_", "")
-                        self._attach_function("filters", getattr(i, method), method_name)
+                        self.attach_function("filters", getattr(i, method), method_name)
                     elif method.lower().startswith("_global_"):
                         method_name = method.replace("_global_", "")
-                        self._attach_function("globals", getattr(i, method), method_name)
+                        self.attach_function("globals", getattr(i, method), method_name)
             except ImportError as ie:
                 Log.error("Unable to import - %s", datasource_file)
                 Log.error("%s", ie)
@@ -122,12 +125,13 @@ class Core(object):
         try:
             with open(source_dockerfile, "r") as stream:
                 Log.info("Reading source file...")
-                template = Template(stream.read())
+                # we'll render a file, so we should preserve newlines as they are
+                template = Template(stream.read(), keep_trailing_newline=True)
         except (OSError, IOError) as e:
             raise FileProcessingError(e, source_dockerfile)
 
         # Update the jinja environment with all custom functions & filters
-        self._update_env(template.environment)
+        self.update_template_env(template.environment)
 
         context = self.config.get_tree()
         Log.debug("context: %s", context)
@@ -135,8 +139,7 @@ class Core(object):
         Log.info("rendering Dockerfile...")
         out_data = template.render(**context)
 
-        Log.debug("\n******\nWriting to file\n*******")
-        Log.debug(out_data)
+        Log.debug("Data to be written to the output file\n*****\n%s*****", out_data)
 
         try:
             with open(outputfile, "w") as stream:
@@ -145,23 +148,22 @@ class Core(object):
         except (OSError, IOError) as e:
             raise FileProcessingError(e, outputfile)
 
-    def _attach_function(self, attr, func, name):
+    def attach_function(self, attr, func, name):
         """
-        Register a function so it can be used within Jinja
+        Add function to environment context hash so it can be used within Jinja
         """
-        Log.debug("Attaching function to jinja : {} : {} : {}".format(attr, func.__name__, name))
-
-        global _local_env
-        _local_env[attr][name] = func
+        Log.debug("Attaching function to jinja : %s : %s : %s", attr, func.__name__, name)
+        self.environment_vars[attr][name] = func
         return func
 
-    def _update_env(self, env):
+    def update_template_env(self, template_env):
         """
         Given a jinja environment, update it with third party
         collected environment extensions.
         """
-        env.globals.update(_local_env["globals"])
-        env.filters.update(_local_env["filters"])
+        for n in ('globals', 'filters'):
+            env_vars = getattr(template_env, n)
+            env_vars.update(self.environment_vars[n])
 
     def main(self):
         """
