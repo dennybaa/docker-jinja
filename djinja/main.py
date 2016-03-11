@@ -5,13 +5,10 @@ import os
 import sys
 import logging
 
-# Package imports
-from djinja import contrib
-from djinja import _local_env
-from djinja.conftree import ConfTree
-
-# 3rd party imports
 from jinja2 import Template
+
+from djinja import _local_env, contrib, FileProcessingError
+from djinja.conftree import ConfTree
 
 
 Log = logging.getLogger(__name__)
@@ -69,8 +66,6 @@ class Core(object):
         Take all specefied datasources from cli and merge with any in config then
         try to import all datasources and raise exception if it fails.
         """
-        # TODO: Push datasources into conftree but because they are lists they wont merge easy
-        #  via dict.update()
         ds = self.args.get("--datasource", [])
         ds.extend(self.config.tree.get("datasources", []))
 
@@ -79,11 +74,7 @@ class Core(object):
 
         # Load all specefied datasource files
         for datasource_file in ds:
-            if not os.path.exists(datasource_file):
-                raise Exception("Unable to load datasource file : {}".format(datasource_file))
-
             p = os.path.dirname(datasource_file)
-
             try:
                 # Append to sys path so we can import the python file
                 sys.path.insert(0, p)
@@ -103,40 +94,56 @@ class Core(object):
                         method_name = method.replace("_global_", "")
                         self._attach_function("globals", getattr(i, method), method_name)
             except ImportError as ie:
-                Log.critical("cannot load datasource. {}".format(ie))
-                raise ie
+                Log.error("Unable to import - %s", datasource_file)
+                Log.error("%s", ie)
+                sys.exit(1)
             finally:
                 # Clean out path to avoid issue
                 sys.path.remove(p)
+
+    def handle_dockerfile(self):
+        """
+        Handle errors and pass the invocation to process_dockerfile.
+        """
+        try:
+            self.process_dockerfile()
+        except FileProcessingError as e:
+            Log.error("Couldn't process - %s", e.args[1])
+            Log.error("%s", e.args[0])
+            sys.exit(1)
 
     def process_dockerfile(self):
         """
         Read source dockerfile --> Render with jinja --> Write to outfile
         """
         source_dockerfile = self.args["--dockerfile"]
+        outputfile = self.args["--outfile"]
 
-        with open(source_dockerfile, "r") as stream:
-            Log.info("Reading source file...")
-            template = Template(stream.read())
+        try:
+            with open(source_dockerfile, "r") as stream:
+                Log.info("Reading source file...")
+                template = Template(stream.read())
+        except (OSError, IOError) as e:
+            raise FileProcessingError(e, source_dockerfile)
 
         # Update the jinja environment with all custom functions & filters
         self._update_env(template.environment)
 
-        env_vars = self.config.get("env", {})
-        Log.debug("env_vars: {}".format(env_vars))
+        context = self.config.get_tree()
+        Log.debug("context: %s", context)
 
         Log.info("rendering Dockerfile...")
-        out_data = template.render(**env_vars)
+        out_data = template.render(**context)
 
         Log.debug("\n******\nWriting to file\n*******")
         Log.debug(out_data)
 
-        if "--outfile" not in self.args:
-            raise Exception("missing key '--outfile' in cli_args. Could not write to output file.")
-
-        with open(self.args["--outfile"], "w") as stream:
-            Log.info("Writing to outfile...")
-            stream.write(out_data)
+        try:
+            with open(outputfile, "w") as stream:
+                Log.info("Writing to outfile...")
+                stream.write(out_data)
+        except (OSError, IOError) as e:
+            raise FileProcessingError(e, outputfile)
 
     def _attach_function(self, attr, func, name):
         """
@@ -166,6 +173,6 @@ class Core(object):
 
         self.handle_data_sources()
 
-        self.process_dockerfile()
+        self.handle_dockerfile()
 
         Log.info("Done... Bye :]")

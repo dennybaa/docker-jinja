@@ -31,7 +31,6 @@ log_level_to_string_map = {
     0: "INFO"
 }
 
-
 def init_logging(log_level):
     """
     Init logging settings with default set to INFO
@@ -62,3 +61,10 @@ def init_logging(log_level):
     }
 
     logging.config.dictConfig(logging_conf)
+
+
+class FileProcessingError(Exception):
+    """
+    FileProcessingError exception throwed when file couldn't be read/write
+    or its processing fails.
+    """

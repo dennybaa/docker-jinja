@@ -7,21 +7,20 @@ import logging
 import sys
 import yaml
 
+from djinja import FileProcessingError
+
 Log = logging.getLogger(__name__)
 
 
 class ConfTree(object):
 
-    class LoadError(Exception):
-        """Config file load error exception
-        """
-
     def __init__(self):
         self.tree = {}
 
     def load_config_files(self, config_files, **kwargs):
-        """ Loads a bunch of config files, accepts onload_fail keyword argument.
-            onload_fail can be used to skip failure during default config file load.
+        """
+        Loads a bunch of config files, accepts onload_fail keyword argument.
+        onload_fail can be used to skip failure during default config file load.
         """
         if not isinstance(config_files, list):
             raise TypeError("config_files must be a list")
@@ -30,7 +29,7 @@ class ConfTree(object):
         for config_file in config_files:
             try:
                 self.load_config_file(config_file)
-            except ConfTree.LoadError as e:
+            except FileProcessingError as e:
                 if not onload_fail:
                     continue
                 Log.error("Config load failed - %s", config_file)
@@ -38,13 +37,14 @@ class ConfTree(object):
                 sys.exit(1)
 
     def load_config_file(self, config_file):
-        """ Load YAML or JSON from given config file and merge data tree
+        """
+        Load YAML or JSON from given config file and merge data tree
         """
         try:
             with open(config_file, "r") as stream:
                 data = stream.read()
         except (OSError, IOError) as e:
-            raise ConfTree.LoadError(e)
+            raise FileProcessingError(e)
 
         # JSON is a subset of YAML, so we iterate through load functions to read
         # the data rather than trying to probe data type.
@@ -60,7 +60,7 @@ class ConfTree(object):
             except Exception as e:
                 # Both loaders have failed or other error occured,
                 # raise more descriptive yaml error.
-                raise ConfTree.LoadError(yaml_error or e)
+                raise FileProcessingError(yaml_error or e)
 
         Log.debug("Loading data from config file `%s'", config_file)
 
