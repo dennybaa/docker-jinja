@@ -36,11 +36,11 @@ class Core(object):
 
         Log.debug("DEFAULT_CONFIG_FILES: {}".format(self.default_config_files))
 
-        # Load all config files into unified config tree,
-        # don't fail since default config files may not exist.
+        # Load all config files into unified config tree, don't fail on load since
+        # default config files might not exist.
         Log.debug("Building config...")
-        self.config = ConfTree(self.default_config_files)
-        self.config.load_config_files(onload_fail=False)
+        self.config = ConfTree()
+        self.config.load_config_files(self.default_config_files, onload_fail=False)
         Log.debug("Config building is done")
 
     def parse_env_vars(self):
@@ -61,10 +61,8 @@ class Core(object):
 
         It should only be possible to load one user specefied config file.
         """
-        user_specefied_config_file = self.args.pop("--config", None)
-        if user_specefied_config_file:
-            Log.debug("Loading user specefied config file : {}".format(user_specefied_config_file))
-            self.config.load_config_file(user_specefied_config_file)
+        user_specefied_config_files = self.args.get("--config", [])
+        self.config.load_config_files(user_specefied_config_files)
 
     def handle_data_sources(self):
         """

@@ -16,18 +16,18 @@ class ConfTree(object):
         """Config file load error exception
         """
 
-    def __init__(self, config_files=None):
-        self.config_files = config_files if config_files else []
-        if not isinstance(self.config_files, list):
-            raise Exception("config_files must be a list of items that can be read from FS")
+    def __init__(self):
         self.tree = {}
 
-    def load_config_files(self, **kwargs):
+    def load_config_files(self, config_files, **kwargs):
         """ Loads a bunch of config files, accepts onload_fail keyword argument.
             onload_fail can be used to skip failure during default config file load.
         """
-        for config_file in self.config_files:
-            onload_fail = kwargs.get('onload_fail')
+        if not isinstance(config_files, list):
+            raise TypeError("config_files must be a list")
+
+        onload_fail = kwargs.get('onload_fail', True)
+        for config_file in config_files:
             try:
                 self.load_config_file(config_file)
             except ConfTree.LoadError as e:
@@ -46,23 +46,21 @@ class ConfTree(object):
         except (OSError, IOError) as e:
             raise ConfTree.LoadError(e)
 
-        # Determine file type by extension
-        extension = os.path.splitext(config_file)[-1].lower()
-        if extension in ('.yaml', '.yml'):
-            load_function = yaml.load
-        elif extension in ('.json'):
-            load_function = json.loads
-        else:
-            Log.error("Unsupported config file type, please provide correct file "
-                      "with one of the following extentions: .yml, .yaml, .json")
-            sys.exit(1)
-
-        # Generic exception catch because several exceptions are raised as
-        # well as newer python raises different exception (at least py35)
-        try:
-            data_tree = load_function(data)
-        except (yaml.YAMLError, Exception) as e:
-            raise ConfTree.LoadError(e)
+        # JSON is a subset of YAML, so we iterate through load functions to read
+        # the data rather than trying to probe data type.
+        yaml_error = None
+        for load_function in (yaml.load, json.loads):
+            try:
+                data_tree = load_function(data)
+                break
+            except yaml.YAMLError as e:
+                # try to load using json loader
+                yaml_error = e
+                continue
+            except Exception as e:
+                # Both loaders have failed or other error occured,
+                # raise more descriptive yaml error.
+                raise ConfTree.LoadError(yaml_error or e)
 
         Log.debug("Loading data from config file `%s'", config_file)
 

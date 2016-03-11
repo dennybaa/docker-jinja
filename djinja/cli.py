@@ -18,11 +18,11 @@ def main():
 
     __docopt__ = """
     Usage:
-      ed -d DOCKERFILE -o OUTFILE [-s DSFILE]... [-e ENV]... [-c CONFIGFILE]
+      dj -d DOCKERFILE -o OUTFILE [-s DSFILE]... [-e ENV]... [-c CONFIGFILE]...
          [-v ...] [-q] [-h] [--version]
 
     Options:
-      -c CONFIGFILE --config CONFIGFILE       file containing global config for ed
+      -c CONFIGFILE --config CONFIGFILE       file containing data config for dj, must have .yml, .yaml, .json extensions
       -s DSFILE --datasource DSFILE           file that should be loaded as a datasource
       -d DOCKERFILE --dockerfile DOCKERFILE   dockerfile to render
       -e ENV --env ENV                        variable with form "key=value" that should be used in the rendering
