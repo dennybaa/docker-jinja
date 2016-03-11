@@ -22,7 +22,7 @@ def main():
          [-v ...] [-q] [-h] [--version]
 
     Options:
-      -c CONFIGFILE --config CONFIGFILE       file containing data config for dj, must have .yml, .yaml, .json extensions
+      -c CONFIGFILE --config CONFIGFILE       file containing data config for dj (yaml or json format)
       -s DSFILE --datasource DSFILE           file that should be loaded as a datasource
       -d DOCKERFILE --dockerfile DOCKERFILE   dockerfile to render
       -e ENV --env ENV                        variable with form "key=value" that should be used in the rendering
