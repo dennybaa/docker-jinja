@@ -3,4 +3,4 @@
 testfixtures==4.0.0
 pytest==2.5.2
 tox==1.7.2
-coveralls==0.4.2
+coveralls
