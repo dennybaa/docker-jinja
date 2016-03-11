@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# python std lib
 import os
 import sys
 import logging
 
 from jinja2 import Template
 
-from djinja import contrib, FileProcessingError
+from djinja import contrib, FileProcessingError, ExitError
 from djinja.conftree import ConfTree
 
 Log = logging.getLogger(__name__)
@@ -99,7 +98,7 @@ class Core(object):
             except ImportError as ie:
                 Log.error("Unable to import - %s", datasource_file)
                 Log.error("%s", ie)
-                sys.exit("import failed")
+                raise ExitError("import failed")
             finally:
                 # Clean out path to avoid issue
                 sys.path.remove(p)
@@ -113,7 +112,7 @@ class Core(object):
         except FileProcessingError as e:
             Log.error("Couldn't process - %s", e.args[1])
             Log.error("%s", e.args[0])
-            sys.exit(1)
+            raise ExitError("dockerfile not loaded")
 
     def process_dockerfile(self):
         """
@@ -169,12 +168,13 @@ class Core(object):
         """
         Runs all logic in application
         """
-        self.load_user_specefied_config_files()
 
-        self.parse_env_vars()
-
-        self.handle_data_sources()
-
-        self.handle_dockerfile()
+        try:
+            self.load_user_specefied_config_files()
+            self.parse_env_vars()
+            self.handle_data_sources()
+            self.handle_dockerfile()
+        except ExitError:
+            sys.exit(1)
 
         Log.info("Done... Bye :]")

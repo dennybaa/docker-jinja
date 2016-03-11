@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# python std lib
-import os
 import json
 import logging
-import sys
 import yaml
 
-from djinja import FileProcessingError
+from djinja import FileProcessingError, ExitError
 
 Log = logging.getLogger(__name__)
 
@@ -34,7 +31,7 @@ class ConfTree(object):
                     continue
                 Log.error("Config load failed - %s", config_file)
                 Log.error("%s", e.args[0])
-                sys.exit("config not loaded")
+                raise ExitError("config not loaded")
 
     def load_config_file(self, config_file):
         """

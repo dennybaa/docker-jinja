@@ -5,6 +5,7 @@ import logging
 
 # djinja package imports
 import djinja
+from djinja import ExitError
 from djinja.main import Core
 from djinja.conftree import ConfTree
 
@@ -114,7 +115,7 @@ def test_load_no_user_specefied_config_files():
     c = Core({
         "--config": ["/tmp/foobar/opalopa"]
     })
-    with pytest.raises(SystemExit) as ex:
+    with pytest.raises(ExitError) as ex:
         c.load_user_specefied_config_files()
     assert ex.value.message == "config not loaded"
 
@@ -128,7 +129,7 @@ def test_load_user_specefied_config_file_wrong_format(tmpdir):
     c = Core({
         "--config": [str(f)]
     })
-    with pytest.raises(SystemExit) as ex:
+    with pytest.raises(ExitError) as ex:
         c.load_user_specefied_config_files()
     assert ex.value.message == "config not loaded"
 
@@ -157,7 +158,8 @@ def _global_lower(string):
         "--outfile": str(out),
         "--datasource": [str(dsfile)]
     })
-    c.main()
+    c.handle_data_sources()
+    c.handle_dockerfile()
     assert out.read() == "FOO : bar"
 
 
@@ -173,8 +175,8 @@ def test_fail_load_non_existing_datasource(tmpdir):
         "--outfile": str(out),
         "--datasource": ["/tmp/foobar/barfoo"]
     })
-    with pytest.raises(SystemExit) as ex:
-        c.main()
+    with pytest.raises(ExitError) as ex:
+        c.handle_data_sources()
     assert ex.value.message == "import failed"
 
 
@@ -198,8 +200,9 @@ raise ImportError("foobar")
         "--outfile": str(out),
         "--datasource": [str(dsfile)]
     })
-    with pytest.raises(SystemExit) as ex:
-        c.main()
+    with pytest.raises(ExitError) as ex:
+        c.handle_data_sources()
+        c.handle_dockerfile()
     assert ex.value.message == "import failed"
 
 
@@ -218,8 +221,8 @@ def test_process_dockerfile(tmpdir):
         "--outfile": str(out),
         "--config": [str(c)],
     })
-
-    c.main()
+    c.load_user_specefied_config_files()
+    c.handle_dockerfile()
     assert out.read() == "foobar"
 
 

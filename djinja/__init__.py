@@ -66,3 +66,13 @@ class FileProcessingError(Exception):
     FileProcessingError exception throwed when file couldn't be read/write
     or its processing fails.
     """
+
+
+class ExitError(Exception):
+    """
+    Custom exit error
+    """
+
+    def __init__(self, message):
+        super(ExitError, self).__init__()
+        self.message = message
