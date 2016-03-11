@@ -34,7 +34,7 @@ class ConfTree(object):
                     continue
                 Log.error("Config load failed - %s", config_file)
                 Log.error("%s", e.args[0])
-                sys.exit(1)
+                sys.exit("config not loaded")
 
     def load_config_file(self, config_file):
         """

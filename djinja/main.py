@@ -55,7 +55,7 @@ class Core(object):
             _vars[s[0]] = s[1]
         self.config.merge_data_tree(_vars)
 
-    def load_user_specefied_config_file(self):
+    def load_user_specefied_config_files(self):
         """
         Loads any config file specefied by user from commandline.
 
@@ -99,7 +99,7 @@ class Core(object):
             except ImportError as ie:
                 Log.error("Unable to import - %s", datasource_file)
                 Log.error("%s", ie)
-                sys.exit(1)
+                sys.exit("import failed")
             finally:
                 # Clean out path to avoid issue
                 sys.path.remove(p)
@@ -169,7 +169,7 @@ class Core(object):
         """
         Runs all logic in application
         """
-        self.load_user_specefied_config_file()
+        self.load_user_specefied_config_files()
 
         self.parse_env_vars()
 
