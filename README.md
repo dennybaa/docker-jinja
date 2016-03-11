@@ -1,10 +1,9 @@
+[![Build Status](https://travis-ci.org/dennybaa/docker-jinja.svg?branch=master)](https://travis-ci.org/dennybaa/docker-jinja)
+[![Coverage Status](https://coveralls.io/repos/github/dennybaa/docker-jinja/badge.svg?branch=master)](https://coveralls.io/github/dennybaa/docker-jinja?branch=master)
 # docker-jinja - dj
 
 Extend your dockerfiles with Jinja2 syntax and logic.
-
 Create new filter and functions for Jinja with simple datasource files.
-
-Build status: [![Build Status](https://travis-ci.org/Grokzen/docker-jinja.svg?branch=master)](https://travis-ci.org/Grokzen/docker-jinja) [![Coverage Status](https://coveralls.io/repos/Grokzen/docker-jinja/badge.png)](https://coveralls.io/r/Grokzen/docker-jinja)
 
 
 ## Quickstart guide
