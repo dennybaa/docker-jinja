@@ -249,11 +249,10 @@ def test_attach_function():
     #       it should fail with some exception
 
 
-def test_update_template_env(tmpdir):
+def test_get_template_environment(tmpdir):
+    """Testing template create from pre-created environment with a global
+       function given.
     """
-    """
-    global _local_env
-
     i = tmpdir.join("Dockerfile.jinja")
     i.write("{{ func() }}")
     o = tmpdir.join("Dockerfile")
@@ -267,8 +266,9 @@ def test_update_template_env(tmpdir):
         return "foobar"
     c.attach_function("globals", foo_func, "func")
 
-    template = Template(i.read())
-    c.update_template_env(template.environment)
+    environment = c.get_template_environment()
+    template = environment.from_string(i.read())
+
     rendered_template = template.render()
     assert rendered_template == "foobar"
 

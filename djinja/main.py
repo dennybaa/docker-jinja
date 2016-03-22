@@ -4,7 +4,7 @@ import os
 import sys
 import logging
 
-from jinja2 import Template
+from jinja2 import Environment
 
 from djinja import contrib, FileProcessingError, ExitError
 from djinja.conftree import ConfTree
@@ -124,13 +124,10 @@ class Core(object):
         try:
             with open(source_dockerfile, "r") as stream:
                 Log.info("Reading source file...")
-                # we'll render a file, so we should preserve newlines as they are
-                template = Template(stream.read(), keep_trailing_newline=True)
+                environment = self.get_template_environment()
+                template = environment.from_string(stream.read())
         except (OSError, IOError) as e:
             raise FileProcessingError(e, source_dockerfile)
-
-        # Update the jinja environment with all custom functions & filters
-        self.update_template_env(template.environment)
 
         context = self.config.get_tree()
         Log.debug("context: %s", context)
@@ -155,14 +152,16 @@ class Core(object):
         self.environment_vars[attr][name] = func
         return func
 
-    def update_template_env(self, template_env):
+    def get_template_environment(self):
         """
-        Given a jinja environment, update it with third party
-        collected environment extensions.
+        Given a jinja templated environment, updated with our globals and filters.
         """
+        # we'll render a file, so we should preserve newlines as they are
+        environment = Environment(keep_trailing_newline=True)
         for n in ('globals', 'filters'):
-            env_vars = getattr(template_env, n)
+            env_vars = getattr(environment, n)
             env_vars.update(self.environment_vars[n])
+        return environment
 
     def main(self):
         """
